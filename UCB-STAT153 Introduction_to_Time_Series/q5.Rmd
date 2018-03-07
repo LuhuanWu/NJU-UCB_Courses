@@ -1,0 +1,354 @@
+---
+title: "q5"
+author: "luhuan wu"
+date: "4/14/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##Compute_MSE function for cross-validation
+```{r}
+computeCVmse <- function(order.totry, seasorder.totry){
+  MSE=numeric()
+  len=length(ts.log)
+  for(k in 5:1){
+    train.dt=ts.log[1:(len-52*k)]
+    test.dt=ts.log[(len-52*k+1):(len-52*(k-1))]
+    mod=arima(train.dt,order=order.totry,
+              seasonal=list(order=seasorder.totry,period=52))
+    fcst=predict(mod,n.ahead=52)
+    MSE[k]=mean((exp(fcst$pred) - exp(test.dt))^2)
+    
+  }
+  return(MSE)
+}
+```
+## Exploratory Data Analysis
+```{r}
+ts5 <- ts(unlist(read.csv("/Users/leah/Downloads/q5_train.csv", as.is = TRUE)))
+ts5_data<-as.numeric( ts5[526:1050] )
+plot(ts5_data,type = "l")
+ts5<-ts(ts5_data,frequency = 52)
+plot(ts5_data, main = "ts5_data", type = "l")
+ts5_pos <- ts5 + 2
+ts5.log <- log(ts5_pos)
+plot(ts5.log, main = "ts5.log")
+ts5.sqrt <- sqrt(ts5_pos)
+plot(ts5.sqrt, main = "ts5.sqrt")
+
+acf(ts5.log, lag.max = 100, main = "ts5.log")
+acf(ts5.log, lag.max = 500, main = "ts5.log")
+
+pacf(ts5.log, lag.max = 100, main = "ts5.log")
+pacf(ts5.log, lag.max = 500, main = "ts5.log")
+
+
+```
+##Use auto.arima
+```{r}
+library(forecast)
+m_try1 = auto.arima(ts5)
+```
+#diag
+```{r}
+m_try1
+tsdiag(m_try1)
+```
+
+##Use robustarima
+```{r}
+m_try2 <- arima.rob(ts5 ~ 1, p=2, d=1)
+m_try2
+```
+##Try differencing
+```{r}
+ts5d <- diff(ts5)
+ts5dD <- diff(ts5d, 52)
+plot(ts5d)
+acf(ts5d, lag.max = 104)
+pacf(ts5d, lag.max = 500)
+acf(ts5d, lag.max = 500)
+plot(ts5dD)
+acf(ts5dD, lag.max = 104)
+pacf(ts5dD, lag.max = 500)
+acf(ts5dD, lag.max = 500)
+
+```
+
+##Fit models and forcasting
+
+auto.arima gives ARIMA(0,1,2)(0,0,2)[52]  
+
+```{r}
+m5.012003 <- arima(ts5, order = c(0, 1, 2), seasonal = list(order = c(0, 0, 3), period = 52))
+m5.012012 <- arima(ts5, order = c(0, 1, 2), seasonal = list(order = c(0, 1, 2), period = 52))
+m5.012102 <- arima(ts5, order = c(0, 1, 2), seasonal = list(order = c(1, 0, 2), period = 52))
+m5.012103 <- arima(ts5, order = c(0, 1, 2), seasonal = list(order = c(1, 0, 3), period = 52))
+m5.112002 <- arima(ts5, order = c(1, 1, 2), seasonal = list(order = c(0, 0, 2), period = 52))
+m5.113002 <- arima(ts5, order = c(1, 1, 3), seasonal = list(order = c(0, 0, 2), period = 52))
+```
+
+```{r}
+m5.112002 <- arima(ts5, order = c(1, 1, 2), seasonal = list(order = c(0, 0, 2), period = 52))
+```
+
+```{r}
+m5.113002 <- arima(ts5, order = c(1, 1, 3), seasonal = list(order = c(0, 0, 2), period = 52))
+```
+
+```{r}
+pred.012003 <- predict(m5.012003, n.ahead = 208 )$pred
+plot(1:(length(ts5) + length(pred.012003)), c(ts5, pred.012003), type = 'l', col = 1, main = "m5.012003")
+points((length(ts5) + 1) : (length(ts5) + length(pred.012003)), pred.012003, type = 'l', col = 2)
+pred.012003 <- predict(m5.012003, n.ahead = 208 )$pred
+plot(1:(length(ts5) + length(pred.012003)), c(ts5, pred.012003), type = 'l', col = 1, main = "m5.012003")
+points((length(ts5) + 1) : (length(ts5) + length(pred.012003)), pred.012003, type = 'l', col = 2)
+
+pred.012012 <- predict(m5.012012, n.ahead = 208 )$pred
+plot(1:(length(ts5) + length(pred.012012)), c(ts5, pred.012012), type = 'l', col = 1, main = "m5.012012")
+points((length(ts5) + 1) : (length(ts5) + length(pred.012012)), pred.012012, type = 'l', col = 2)
+
+pred.012102 <- predict(m5.012102, n.ahead = 208 )$pred
+plot(1:(length(ts5) + length(pred.012102)), c(ts5, pred.012102), type = 'l', col = 1, main = "m5.012102")
+points((length(ts5) + 1) : (length(ts5) + length(pred.012102)), pred.012102, type = 'l', col = 2)
+
+pred.012103 <- predict(m5.012103, n.ahead = 208 )$pred
+plot(1:(length(ts5) + length(pred.012103)), c(ts5, pred.012103), type = 'l', col = 1, main = "m5.012103")
+points((length(ts5) + 1) : (length(ts5) + length(pred.012103)), pred.012103, type = 'l', col = 2)
+
+pred.112002 <- predict(m5.112002, n.ahead = 208 )$pred
+plot(1:(length(ts5) + length(pred.112002)), c(ts5, pred.112002), type = 'l', col = 1, main = "m5.112002")
+points((length(ts5) + 1) : (length(ts5) + length(pred.112002)), pred.112002, type = 'l', col = 2)
+
+pred.113002 <- predict(m5.113002, n.ahead = 208 )$pred
+plot(1:(length(ts5) + length(pred.113002)), c(ts5, pred.113002), type = 'l', col = 1, main = "m5.112003")
+points((length(ts5) + 1) : (length(ts5) + length(pred.113002)), pred.113002, type = 'l', col = 2)
+
+```
+
+##Compute MSE
+```{r}
+computeCVmse <- function(order.totry, seasorder.totry){
+  MSE=numeric()
+  len=length(ts5_data)
+  for(k in 5:1){
+    train.dt=ts5_data[1:(len-52*k)]
+    test.dt=ts5_data[(len-52*k+1):(len-52*(k-1))]
+    mod=arima(train.dt,order=order.totry,
+              seasonal=list(order=seasorder.totry,period=52))
+    fcst=predict(mod,n.ahead=52)
+    MSE[k]=mean((exp(fcst$pred) - exp(test.dt))^2)
+    
+  }
+  return(MSE)
+}
+```
+
+##Diagonistic
+```{r}
+m5.012002 <- m_try1
+
+m5.012002
+m5.012003
+m5.012012
+m5.012102
+m5.012103
+m5.112002
+m5.113002
+
+tsdiag(m5.012002)
+tsdiag(m5.012003)
+tsdiag(m5.012012)
+tsdiag(m5.012102)
+tsdiag(m5.012103)
+tsdiag(m5.112002)
+tsdiag(m5.113002)
+
+AIC(m5.012002)
+AIC(m5.012003)
+AIC(m5.012012)
+AIC(m5.012102)
+AIC(m5.012103)
+AIC(m5.112002)
+AIC(m5.113002)
+
+BIC(m5.012002)
+BIC(m5.012003)
+BIC(m5.012012)
+BIC(m5.012102)
+BIC(m5.012103)
+BIC(m5.112002)
+BIC(m5.113002)
+
+```
+```{r}
+MSE5_012002 
+MSE5_012003
+MSE5_012012
+MSE5_012102
+MSE5_012103
+MSE5_112002 
+MSE5_113002 
+```
+
+```{r}
+MSE5_012003 <- computeCVmse(c(0, 1, 2), c(0,0,3))
+MSE5_012012 <- computeCVmse(c(0, 1, 2), c(0,1,2))
+MSE5_012102 <- computeCVmse(c(0, 1, 2), c(1,0,2))
+MSE5_012103<- computeCVmse(c(0, 1, 2), c(1,0,3))
+MSE5_112002 <- computeCVmse(c(1, 1, 2), c(0,0,2))
+MSE5_113002 <- computeCVmse(c(1, 1, 3), c(0,0,2))
+```
+```{r}
+MSE5_012002 <- computeCVmse(c(0, 1, 2), c(0, 0, 2))
+```
+## Forecasting
+
+```{r}
+pred_try1 <- predict(m_try1, n.ahead = 104 )$pred
+plot(1:(length(ts5) + length(pred_try1)), c(ts5, pred_try1), type = 'l', col = 1)
+points((length(ts5) + 1) : (length(ts5) + length(pred_try1)), pred_try1, type = 'l', col = 2)
+```
+
+### Fit modelling part II
+MSE5_012102
+MSE5_012103
+MSE5_112002 
+```{r}
+m5.013102 <- arima(ts5, order = c(0, 1, 3), seasonal = list(order = c(1, 0, 2), period = 52))
+m5.014102 <- arima(ts5, order = c(0, 1, 4), seasonal = list(order = c(1, 0, 2), period = 52))
+m5.012202 <- arima(ts5, order = c(0, 1, 2), seasonal = list(order = c(2, 0, 2), period = 52))
+
+m5.012203 <- arima(ts5, order = c(0, 1, 2), seasonal = list(order = c(2, 0, 3), period = 52))
+m5.112103 <- arima(ts5, order = c(1, 1, 2), seasonal = list(order = c(1, 0, 3), period = 52))
+m5.013103 <- arima(ts5, order = c(0, 1, 3), seasonal = list(order = c(1, 0, 3), period = 52))
+
+m5.112102 <- arima(ts5, order = c(1, 1, 2), seasonal = list(order = c(1, 0, 2), period = 52))
+m5.112101 <- arima(ts5, order = c(1, 1, 2), seasonal = list(order = c(1, 0, 1), period = 52))
+```
+
+```{r}
+MSE5_013102 <- computeCVmse(c(0, 1, 3), c(1, 0, 2))
+#MSE5_013102 <- computeCVmse(c(0, 1, 3), c(1, 0, 2))
+MSE5_012202 <- computeCVmse(c(0, 1, 2), c(2,0,2))
+MSE5_112103<- computeCVmse(c(1, 1, 2), c(1, 0, 3))
+MSE5_013103 <- computeCVmse(c(0, 1, 3), c(1,0,3))
+MSE5_112102 <- computeCVmse(c(1, 1, 2), c(1,0,2))
+MSE5_112101 <- computeCVmse(c(1, 1, 2), c(1,0,1))
+```
+```{r}
+MSE5_014102 <- computeCVmse(c(0, 1, 4), c(1, 0, 2))
+```
+```{r}
+MSE5_012203 <- computeCVmse(c(0, 1, 2), c(2, 0, 3))
+```
+
+##Diagonistics
+
+```{r}
+m5.013102
+m5.014102
+m5.012202
+m5.012203
+m5.112103
+m5.013103
+m5.112002
+m5.112101
+
+tsdiag(m5.012002)
+tsdiag(m5.012003)
+tsdiag(m5.012012)
+tsdiag(m5.012203)
+tsdiag(m5.112103)
+tsdiag(m5.013103)
+tsdiag(m5.112102)
+tsdiag(m5.112101)
+
+print("AIC")
+AIC(m5.012002)
+AIC(m5.012003)
+AIC(m5.012012)
+AIC(m5.012203)
+AIC(m5.112103)
+AIC(m5.013103)
+AIC(m5.112102)
+AIC(m5.112101)
+
+print("BIC")
+BIC(m5.012002)
+BIC(m5.012003)
+BIC(m5.012012)
+BIC(m5.012203)
+BIC(m5.112103)
+BIC(m5.013103)
+BIC(m5.112102)
+BIC(m5.112101)
+
+print("MSE")
+MSE5_013102 
+MSE5_014102 
+MSE5_012202 
+MSE5_012203
+MSE5_112103
+MSE5_013103 
+MSE5_112102
+MSE5_112101 
+```
+
+##Forecasting
+
+```{r}
+pred5.013102 <- predict(m5.013102, n.ahead = 104)$pred
+plot(1:(length(ts5) + length(pred5.013102)), c(ts5, pred5.013102), type = 'l', col = 1, main = "m5.013102")
+points((length(ts5) + 1) : (length(ts5) + length(pred5.013102)), pred5.013102, type = 'l', col = 2)
+
+pred5.014102 <- predict(m5.014102, n.ahead = 104)$pred
+plot(1:(length(ts5) + length(pred5.014102)), c(ts5, pred5.014102), type = 'l', col = 1, main = "m5.014102")
+points((length(ts5) + 1) : (length(ts5) + length(pred5.014102)), pred5.014102, type = 'l', col = 2)
+
+pred5.012202 <- predict(m5.012202, n.ahead = 104)$pred
+plot(1:(length(ts5) + length(pred5.012202)), c(ts5, pred5.012202), type = 'l', col = 1, main = "m5.012202")
+points((length(ts5) + 1) : (length(ts5) + length(pred5.012202)), pred5.012202, type = 'l', col = 2)
+
+pred5.012203 <- predict(m5.012203, n.ahead = 104)$pred
+plot(1:(length(ts5) + length(pred5.012203)), c(ts5, pred5.012203), type = 'l', col = 1, main = "m5.012203")
+points((length(ts5) + 1) : (length(ts5) + length(pred5.012203)), pred5.012203, type = 'l', col = 2)
+
+pred5.112103 <- predict(m5.112103, n.ahead = 104)$pred
+plot(1:(length(ts5) + length(pred5.112103)), c(ts5, pred5.112103), type = 'l', col = 1, main = "m5.112103")
+points((length(ts5) + 1) : (length(ts5) + length(pred5.112103)), pred5.112103, type = 'l', col = 2)
+
+pred5.013103 <- predict(m5.013103, n.ahead = 104)$pred
+plot(1:(length(ts5) + length(pred5.013103)), c(ts5, pred5.013103), type = 'l', col = 1, main = "m5.013103")
+points((length(ts5) + 1) : (length(ts5) + length(pred5.013103)), pred5.013103, type = 'l', col = 2)
+
+pred5.112102 <- predict(m5.112102, n.ahead = 104)$pred
+plot(1:(length(ts5) + length(pred5.112102)), c(ts5, pred5.112102), type = 'l', col = 1, main = "m5.112102")
+points((length(ts5) + 1) : (length(ts5) + length(pred5.112102)), pred5.112102, type = 'l', col = 2)
+
+pred5.112101 <- predict(m5.112101, n.ahead = 104)$pred
+plot(1:(length(ts5) + length(pred5.112101)), c(ts5, pred5.112101), type = 'l', col = 1, main = "m5.112101")
+points((length(ts5) + 1) : (length(ts5) + length(pred5.112101)), pred5.112102, type = 'l', col = 2)
+
+```
+
+##Try seasonal diffrencing
+add seasonal differencing component to the models below by 1
+012102
+012103
+013103
+```{r}
+m5.012112 <- arima(ts5, order = c(0, 1, 2), seasonal = list(order = c(1, 1, 2), period = 52))
+m5.012113 <- arima(ts5, order = c(0, 1, 2), seasonal = list(order = c(1, 1, 3), period = 52))
+##m5.013113 <- arima(ts5, order = c(0, 1, 3), seasonal = list(order = c(1, 1, 3), period = 52))
+```
+
+##Compute MSE
+```{r}
+m5.013113 <- arima(ts5, order = c(0, 1, 3), seasonal = list(order = c(1, 1, 3), period = 52))
+MSE5_012112 <- computeCVmse(c(0, 1, 2), c(1, 1, 2))
+MSE5_012113 <- computeCVmse(c(0, 1, 2), c(1, 1, 3))
+MSE5_013113 <- computeCVmse(c(0, 1, 3), c(1, 1, 3))
+```

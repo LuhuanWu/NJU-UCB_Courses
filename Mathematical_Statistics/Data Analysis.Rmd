@@ -1,0 +1,498 @@
+---
+title: "Mathematical Statistics Data Analysis Report"
+author: "Luhuan Wu"
+date: "12/17/2017"
+output:
+    pdf_document:
+      includes:
+        in_header: mystyle.sty
+      latex_engine: xelatex
+---
+
+#1. Data Preprocessing
+##1.1 Read Data
+```{r}
+library(readxl)
+boys <- read_xlsx("boy_data.xlsx", sheet = 1)
+girls <- read_xlsx("girl_data.xlsx", sheet = 1)
+boys <- data.frame(boys)
+girls <- data.frame(girls)
+girls$foot <- girls$foot / 10 # foot length unit: m -> cm
+nrow(boys)
+nrow(girls)
+```
+##1.2 Data description
+1. We obtain  84 samples for boys, 29 samples for girls. Each sample include 5 vlues physical measurements:height, armspan, weight, foot-length ("foot" for short), leg-length ("leg" for short), and weight.
+2. The unit for height / armspan / foot-length / leg-length is cm. The unit for weight is kg. We will ignore the unit in the folllowing context.
+
+We store the information of boy-samples and girl-samples in two seperate dataframes.
+```{r}
+head(boys)
+head(girls)
+```
+
+##1.3 Outlier Detection and Treatment
+In this part, we use histogram to detect and delete extreme values.
+Boy height:
+```{r}
+library(ggplot2)
+qplot(boys$height,binwidth=1) 
+```
+We should drop boy student whose height = 150
+```{r}
+boys <- boys[boys$height!=150,]
+```
+Boy armspan:
+```{r}
+qplot(boys[,"armspan"],binwidth=1)
+min(boys[,"armspan"])
+max(boys[,"armspan"])
+```
+We should drop whose armspan = 17(min), 242(max).
+```{r}
+boys <- boys[boys$armspan!=17,]
+boys <- boys[boys$armspan!=242,]
+```
+Boy foot-length:
+```{r}
+qplot(boys$foot,binwidth=0.5)
+```
+We should drop boy student whose foot length = 100.
+```{r}
+boys <- boys[boys$foot!=100,]
+```
+Boy leg-length:
+```{r}
+qplot(boys$leg,binwidth=1)
+```
+Boy weight:
+```{r}
+qplot(boys$weight,binwidth=1)
+```
+Not outliers detected for boy leg-length and weight.
+
+Similarly, we detect and clean outliers for girls data.
+Girl height:
+```{r}
+qplot(girls$height,binwidth=1)
+```
+No significant outliers for girl height.
+Gril armspan:
+```{r}
+qplot(girls$armspan,binwidth=1)
+```
+Delete the min value.
+```{r}
+girls <- girls[girls$armspan!=140,]
+```
+Girl Foot-length
+```{r}
+qplot(girls$foot, binwidth=0.5)
+```
+Girl leg-length:
+```{r}
+qplot(girls$leg, binwidth=1)
+```
+Girl weight:
+```{r}
+qplot(girls$weight, binwidth=1)
+```
+ No significant outliers for girl foot-length, leg-legnth,weight.
+ 
+```{r}
+total <- rbind(boys, girls)
+nrow(total)
+nrow(boys)
+nrow(girls)
+```
+ 
+ After data-cleaning, we have 78 samples for boys, 28 samples for girls and 106 for total students.
+ 
+#2. Descriptive Statistics
+##2.1 Measures of Statistical Posistion
+We could use function $summary$ to check the mean, min value, max value, first quantitle, Median and third quantitle for each statistics.
+```{r}
+summary(boys)
+summary(girls)
+summary(total)
+```
+
+##2.2 Measures of Dispersion
+###2.2.1 Sample Variance -- unbiased estimator of population variance
+$$ \hat{S^2}=\frac{1}{n-1} \sum_{i=1}^n (x_i- \bar{x})^2 $$
+In R, we use function $var$ to the sample variance.
+
+```{r}
+#Boys
+apply(boys, 2, var)
+#Girls
+apply(girls, 2, var)
+#Total
+apply(total, 2, var)
+```
+From the output above, we could see that for the 5 physical measurements, the sample values of boys are greater than thaose of girls, which is consistent wiht our common sense.
+###2.2.2 Biased Sample Variance -- biased estimator of population variance
+$$ S^2=\frac{1}{n} \sum_{i=1}^n (x_i- \bar{x})^2 $$
+Since r does not have buil-in function for biased sample variance, we define the function as below.
+```{r}
+var2 <- function(h) {
+  h.l <- length(h)
+  h.v2 <- (h.l - 1) / h.l*var(h)
+  h.v2
+}
+```
+
+```{r}
+#Boys
+apply(boys, 2, var2)
+#Girls
+apply(girls, 2, var2)
+#Total
+apply(total, 2, var2)
+```
+
+We could see that, for sample variance and biased sample variance, values in boys are greater than girls, while values in total is the largest.
+
+#2.2.3 Range
+$$R=x_{(n)}-x_{(1)}=max(x)-min(x)$$
+In R, we define function $getRange$ to get the minimum and maximum of data.
+```{r}
+getRange <- function(h) {
+  max(h) - min(h)
+}
+```
+
+```{r}
+#Boys
+apply(boys, 2, getRange)
+#Girls
+apply(girls, 2, getRange)
+#Total
+apply(total, 2, getRange)
+```
+
+##2.3 Measures of Distribution
+###2.3.1 Skewness
+$$g_1=\frac{n}{(n-1)(n-2)} \sum_{i=1}{n}(x_i-\bar{x})^3=\frac{n^2 \mu_3^3}{(n-1)(n-2)s^3}$$
+where $s$ is the sample variance and $\mu$ is the third central moment.
+In R, we use function $skewness$ in libary $moments$ for computation.
+```{r}
+library(moments)
+#Boys
+apply(boys, 2, skewness)
+#Girls
+apply(girls, 2, skewness)
+#Total
+apply(total, 2, skewness)
+```
+###2.3.2 Kurtosis
+
+In R, we use function $kurtosis$ in library $moments$ for computation.
+```{r}
+#Boys
+apply(boys, 2, kurtosis)
+#Girls
+apply(girls, 2, kurtosis)
+#Total
+apply(total, 2, kurtosis)
+```
+
+#3. Data Distribution
+##3.1 Histogram.
+A histogram is an accurate representation of the distribution of numerical data. It is an estimate of the probability distribution of a continuous variable (quantitative variable).
+In R, we could use function $qplot$ in package $ggplot2$ to plot the histrogram.
+For example, for boys height, we have
+```{r}
+n <- nrow(boys)
+mean <- mean(boys$armspan)
+sd <- sd(boys$armspan)
+binwidth <- 5
+#Try to fit a normal curve
+qplot(boys$armspan, geom = "histogram", breaks = seq(150, 210, binwidth), 
+      colour = I("black"), fill = I("white"),
+      xlab = "boys$armspan (cm)", ylab = "Count") +
+  # Create normal curve, adjusting for number of observations and binwidth
+  stat_function( 
+    fun = function(x, mean, sd, n, bw){ 
+      dnorm(x = x, mean = mean, sd = sd) * n * bw
+    }, 
+    args = c(mean = mean, sd = sd, n = n, bw = binwidth))
+```
+After suppossing a normal curve that has mean equal to sample mean of Boys armspan and stand deviation equal to sample stanfard deviation, we could hypothesize that Boys armspan is normal distributed.
+Simarily, for Total armspan, we make the normal distribution hypothesis.
+```{r}
+n <- nrow(total)
+mean <- mean(total$armspan)
+sd <- sd(total$armspan)
+binwidth <- 5
+#Try to fit a normal curve
+qplot(total$armspan, geom = "histogram", breaks = seq(140, 210, binwidth), 
+      colour = I("black"), fill = I("white"),
+      xlab = "total$armspan (cm)", ylab = "Count") +
+  # Create normal curve, adjusting for number of observations and binwidth
+  stat_function( 
+    fun = function(x, mean, sd, n, bw){ 
+      dnorm(x = x, mean = mean, sd = sd) * n * bw
+    }, 
+    args = c(mean = mean, sd = sd, n = n, bw = binwidth))
+```
+
+The following discussion is mainly focused on validation of the normal distribution hypothesis of Boys armspan and Total armspan.
+
+##3.2 Kernel Density Estimation
+Kernel density estimation (KDE) is a non-parametric way to estimate the probability density function of a random variable. Kernel density estimation is a fundamental data smoothing problem where inferences about the population are made, based on a finite data sample.
+In R, we use function in $ggplot2::geom_density$ to plot the density curve of Boys armspan and total armspan.
+```{r}
+par(mar=c(1,1,1,1))
+ggplot(boys, aes(x=armspan)) + geom_density() + labs(x = "boys$armspan (cm)") + labs(title = "KDF")
+ggplot(total, aes(armspan)) + geom_density() + labs(x = "total$armspan (cm)") + labs(title = "KDF")
+```
+
+###3.2.1 Empidrical distribution
+```{r}
+par(mar=c(1,1,1,1))
+#Boys
+ggplot(boys, aes(x=armspan)) + stat_ecdf(geom = "step")+ labs(x = "boys$armspan (cm)") + labs(title = "empirical distribution")
+#Total
+ggplot(total, aes(armspan)) + stat_ecdf(geom = "step") + labs(x = "total$armspan (cm)") + labs(title = "empirical distribution")
+```
+
+###3.2.2 Quantile-Quantile Plot
+The quantile-quantile (q-q) plot is a graphical technique for determining if two data sets come from populations with a common distribution. 
+Suppose the population is subject to normal distribution $N(\mu, \sigma^2)$, for sample $x_1, x_2, ..., x_n$, its order statistics are $x_{(1)}, x_{(2)}, ..., x_{(n)}$. Let $\Phi (x)$ be the CDF of standard normal distribution $N(0, 1)$, $\Phi ^{-1}(x)$ be the inverse function, then the Q-Q plot for normal distribution is a scatter plot consisting of points $(\Phi^{-1}(\frac{i-0.375}{n+0.25}), x_{(i)}), i = 1, 2, ..., n$. If the sample data is subject to normal distribution approximately, then Q-Q plot would be near the straight line $y = \delta x + \mu$.
+In R, we could use `ggplot2:stat_qq()`.
+```{r}
+ggplot(total, aes(sample=armspan))+stat_qq()+labs(title = "Normal Q-Q Plot for Total-Armspan")
+ggplot(boys, aes(sample=armspan))+stat_qq()+labs(title = "Normal Q-Q Plot for Boys-Armspan")
+```
+we could infer from above that Boys-Armspan and Total-Armspan are both approximately subject to normal distribution. 
+
+###3.2.3 Box Plot
+A box plot is a method for graphically depicting groups of numerical data through their quartiles.
+In R, we could use `ggplot2::geom_boxplot()`.
+For example, we plot the Box Plot of Boys-Height and Boys-Foot-Length, and use red start to denote outliers.
+```{r}
+ggplot(boys, aes(x=factor(height), y=foot)) + geom_boxplot(outlier.colour="red", outlier.shape=8,
+                outlier.size=4)
+```
+From the above plot, we could see there are 4 outliers, which means the corresponding boy student either has "too long" or "too short" foot length for his height.
+
+#4. Hypothesis Test
+First, we would perform non-parametric hypothesis test on Total-Height, Total-Armspan, Total-Foot-Length, to infer their distributions. Since we do not have historical data and experience, we could not choose a value to perform parametric hypothesis test. If we use sample mean for the hypothesis test for mean, then the hypothesis would not be rejected, which is make the statisitcal inference meaningless. Therefore, we focus on hypothesis test for the mean, variance in the situation of two normal poplutaions.
+
+#4.1 Skewness / Kurtosis Test
+First, define
+Skewness: $g_1=\frac{B_3}{B_2^{3/2}}$
+Kurtosis: $g_2=\frac{B_4}{B_2^2} \text{ where } B_k=\frac{1}{n}\sum_{i=1}^n (x_i-\bar{x})^k$
+
+*Note*: the definitions above are different from those in Chapter 2 of the textbook.
+We make null hypothesis $H_0:F(x)=F_0(x)$, alternative hypothesis$H_1:F(x) \neq F_0(x)$, where $F_0(x)$ is the CDF of normal distribution. It could be proven that when $n >>1$, we have $$g_1 \sim N(0,\frac{6(n-2)}{(n+1)(n+3)}$$
+$$g_2 \sim N(3-\frac{6}{n+1},\frac{24n(n-2)(n-3)}{(n+1)^2(n+3)(n+5)}$$
+*Note*：It is generally required that $n \geq 100$, so here we only test on Total Students sample.
+
+
+Denote:
+$$ \sigma _1^2=\frac{6(n-2)}{(n+1)(n+3)}$$ $$\sigma_2^2=\frac{24n(n-2)(n-3)}{(n+1)^2(n+3)(n+5)}$$
+then we have the rejeciton region 
+$$X_0=|\frac{B_3}{\sigma_1 B_2^{3/2}}| >u_{1-\alpha/4}$$
+or $$|\frac{B_4/B_2^2-3(n-1)/(n+1)}{\sigma_2}| > u_{1-\alpha/4}$$
+
+In R, we define function:
+```{r}
+test1 <- function(H) {
+   alpha <- 0.05
+   H.l <- length(H)
+   H.m <- mean(H)
+   x<-sum((H-H.m)^3)/H.l;
+   y<-sum((H-H.m)^2)/H.l;
+   z<-sum((H-H.m)^4)/H.l;
+   a1<-6*(H.l-2)/(H.l+1)/(H.l+3);
+   a2<-24*H.l*(H.l-2)*(H.l-3)/(H.l+1)^2/(H.l+3)/(H.l+5);
+   b<-3*(H.l-1)/(H.l+1);
+  r1<-abs(x/(sqrt(a1)*y^(3/2)));
+  r2<-abs((z/y^2-b)/sqrt(a2));
+  r3<-qnorm(1-alpha/4,0,1);
+  r<-(r1>r3)||(r2>r3);
+}
+```
+If return FALSE, then reject; else accept.
+For example
+```{r}
+apply(boys, 2, test1)
+```
+
+##4.2 Sign Test
+The **sign test** is a statistical method to test for consistent differences between pairs of observations.
+In R, we could use _binom.test()_ to perform sign test.
+We make the null hypothesis: there is not significante diference in heights of boys and girls, and the alternative hypothesis: there is significante diference in heights of boys and girls.
+```{r}
+ngirls<-nrow(girls)
+binom.test(sum(sample(boys$height, ngirls)<girls$height), ngirls)
+```
+We couls see from the test result, that the probability of success is very small, which means we should reject the null hypothesis.
+
+##4.3 Rank Correlation Test
+###4.3.1 Spearman's Rank Correlation Test
+In R, we use function _cor.test()_ to perform the test.
+For example, we test wether there is a correlation between Girl-Height and Girl-Weight.
+```{r}
+cor.test(girls$height, girls$weight)
+```
+The Spearman's coefficent is 0.7175431, which suggests a rather high positive correlation, that is, Girl-Height and Girl-Weight is highly positively correlated.
+
+###4.3.2 Kendall's Rank Correlation Test
+In R, we use _cor.test(,method="kendall")_ to perform the test.
+For example, we test whether there is a correlation between Boys-Foot-Length and Boys-Leg-Length.
+```{r}
+cor.test(boys$foot, boys$leg, method="kendall")
+```
+We could see that the p-value is very samll, which means a high correlation.
+
+###4.3.3 Wilcoxon Coefficient Test
+####4.3.3.1 Paired Sample Test
+In R, we could use _wilcox.test()_ to perform the test.
+In this part, we use rank test to infer whether there is a significant difference in Boys-Armspan and Girls-Armspan. Since the sample number of boys and girls are not equal, we bootstrap the Boys sample, and then perform the pairing.
+```{r}
+wilcox.test(sample(boys$armspan, ngirls),girls$armspan, alternative="g", paired=TRUE)
+```
+Since $p=3.276e-06<0.05$, we could reject the null hypothesis, which means Boys-Armspan is generally larger than Girls-Armspan.
+
+####4.3.3.2 Unpaired Sample Test
+In R, we still use _wilcox.test().
+In this case, we do not need to bootstrap Boys sample.
+```{r}
+wilcox.test(sample(boys$armspan, ngirls),girls$armspan, alternative="g", paired=FALSE)
+```
+Since $p=1.772e-07<0.05$, we could reject the null hypothesis, which means Boys-Armspan is generally larger than Girls-Armspan.
+
+
+#5. Estimation of Parameter
+Due to the limit of sample size, we focus on Boys sample in this section.
+
+##5.1 Point Estimation
+
+###5.1.1 Method of Moments
+We could use sample mean and sample variance for population mean and population variance. We have computed the values in previous chapter.
+
+###5.1.2 Maximum Likelihood Estimation
+In R, we define the function:
+```{r}
+mle <- function(H) {
+  n <- length(H)
+  H.m <- mean(H)
+  H.v <- sum((H-H.m)^2)/n
+  c(H.m, H.v)
+}
+```
+Then, we perform the MLE for Boys, Girls and Total.
+Note that in the output, the first row is the estimated mean, and the second row is the estimated variance.
+```{r}
+#Boys
+apply(boys, 2, mle)
+#Girls
+apply(girls, 2, mle)
+#Total
+apply(total, 2, mle)
+```
+
+##5.2 Interval Estimation
+###5.2.1 One Normal Population
+1. Mean
+In R, we could use _t.test()_.
+For example,
+```{r}
+apply(boys, 2, t.test)
+```
+From above, we could get the mean estimation and the corresponding confidence intervals for Boys sample.
+2. Variance
+In R, we define the function:
+```{r}
+interval_var1<-function(x,mu=Inf,alpha=0.05){
+   n<-length(x);
+   if(mu<Inf){
+   S2<-sum((x-mu)^2)/n;
+   df<-n;
+   }
+   else {
+   S2<-var(x);
+   df<-n-1;
+   }
+  a<-df*S2/qchisq(1-alpha/2,df)
+  b<-df*S2/qchisq(alpha/2,df)
+  data.frame(var=S2,df=df,a=a,b=b)
+}
+```
+For example, on Boys sample:
+```{r}
+apply(boys,2,interval_var1)
+```
+For the output above, [a,b] stands for the 95% CI.
+
+###5.2.2 Two Normal Populations
+Interval estimation of $\mu_1 - \mu2$ 
+```{r}
+interval_estimate2<-function(x,y,sigma=c(-1,1),var.equal=FALSE,alpha=0.05){
+  n1<-length(x); n2<-length(y);
+    xb<-mean(x); yb<-mean(y)
+ if(all(sigma>=0)){
+  tmp<-qnorm(1-alpha/2)*sqrt(sigma[1]^2/n1+sigma[2]^2/n2);
+ df<-n1+n2;}
+ else {
+ if (var.equal ==  TRUE){
+  Sw<-((n1-1)*var(x)+(n2-1)*var(y))/(n1+n2-2)
+  tmp<-sqrt(Sw*(1/n1+1/n2))*qt(1-alpha/2,n1+n2-2)
+ df<-n1+n2=2;}
+ else {
+ S1<-var(x);S2<-var(y);
+  nu<-(S1/n1+S2/n2)^2/(S1^2/n1^2/(n1-1)+S2^2/n2^2/(n2-1))
+ tmp<-qt(1-alpha/2, nu)*sqrt(S1/n1+S2/n2)
+ df<-nu
+ }
+ }
+  data.frame(mean=xb-yb, df=df, a=xb-yb-tmp, b=xb-yb+tmp)
+}
+```
+For example, we perform the interval estimation for Boys-Height and Girls-Height.
+```{r}
+interval_estimate2(boys$height, girls$height)
+```
+From the output, we could see the estimated $\mu_1-\mu_2=10.53994$, and the CI = $[8.294087,	12.78558]$.
+
+#6. Regression Analysis
+##6.1 Covariance of multivariate data
+We could use _cor()_ to get the covaraince matrix of Boys, Girls, and Total.
+```{r}
+cov(boys)
+cov(girls)
+cov(total)
+```
+
+##6.2 Linear Regression Analysis
+In R, we could use _lm()_ to fit the linear model
+In this part, we test whether there is a linear relationship between Height and Armspan, Foot-Length and Leg-Lenghth. Due to the limit of sample size, we perform the test on Boys sample.
+
+1. Boys-Height & Boys-Weight
+```{r}
+#Plot the data
+bhba.plot <- ggplot(boys, aes(x=armspan, y=height)) + geom_point(color='blue')
+bhba.plot
+#Fit the linear model
+bhba.lm <- lm(boys$height ~ 1 + boys$armspan)
+bhba.lm
+#Add to the plot
+bhba.plot + geom_smooth(method='lm')
+```
+From the output of the _lm()_, we could obtain the regression function:
+$$ Boys.Height = 84.2933+0.5234*Boys.Armspan$$
+2. Boys-Foot-Length & Boys-Leg-Length
+```{r}
+#Plot the data
+bfbl.plot <- ggplot(boys, aes(x=foot, y=leg)) + geom_point(color='blue')
+bfbl.plot
+#Fit the linear model
+bfbl.lm <- lm(boys$leg ~ 1 + boys$foot)
+bfbl.lm
+#Add to the plot
+bfbl.plot + geom_smooth(method='lm')
+```
+From the last plot, we could see the linear relaitonship merely exists.

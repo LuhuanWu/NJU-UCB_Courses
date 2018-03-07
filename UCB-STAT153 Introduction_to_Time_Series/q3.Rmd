@@ -1,0 +1,185 @@
+---
+title: "Q(3)"
+author: "luhuan wu"
+date: "4/13/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exploratory Data Analysis
+```{r}
+ts3 <- ts(unlist(read.csv("/Users/leah/Downloads/q3_train.csv", as.is = TRUE)))
+```
+
+```{r}
+plot(ts3, type = 'l')
+ts3_true<-as.numeric( ts3[526:1050] ) # select effective data
+plot(ts3_true,type = "l")
+ts3_positive<-ts3_true+2  # shift upwards to get the positive value so we can take log transformation
+plot(ts3_positive,type = "l")
+```
+##Transform the data to stabilize the variance.
+```{r}
+ts3.log <- log(ts3_positive)
+plot(ts3.log, type ='l')
+```
+##Try taking square root to stablize the variance
+```{r}
+ts3.sqrt <- sqrt(ts3_positive)
+plot(ts3.sqrt, type ='l')
+```
+
+## Diffrencing
+
+```{r}
+ts3.sqrt.D <- diff(ts3.sqrt, 52)
+plot(ts3.sqrt.D, type ='l')
+```
+
+##Fit a 2nd-order polynomial!
+```{r}
+fitpoly3 <- lm(a ~ poly(t,2))
+plot(ts3.sqrt, type = 'l')
+lines(fitpoly3$fitted, col = "blue", lwd = 5)
+acf(fitpoly3$residuals, lag.max = 500)
+y3 = fitpoly3$residuals
+plot(y3, type = 'l')
+```
+## fit models for original data
+```{r}
+fitpoly3_true <- lm(ts3_true ~ poly(t,2))
+plot(ts3_true, type = 'l')
+lines(fitpoly3_true$fitted, col = "blue", lwd = 5)
+acf(fitpoly3_true$residuals, lag.max = 500)
+y3 = fitpoly3_true$residuals
+plot(y3, type = 'l')
+```
+
+```{r}
+ts3.d <- diff(ts3_true)
+plot(ts3.d, type = 'l')
+acf(ts3.d, lag.max = 500)
+pacf(ts3.d, lag.max = 500)
+```
+## Differencing the original data
+```{r}
+ts3.dd <- diff(diff(ts3_true))
+plot(ts3.dd, type = 'l')
+acf(ts3.dd, lag.max = 500)
+pacf(ts3.dd, lag.max = 500)
+```
+
+```{r}
+ts3.ddD <- diff(ts3.dd, 52)
+plot(ts3.ddD, type = "l")
+acf(ts3.ddD, lag.max = 500)
+
+pacf(ts3.ddD, lag.max = 100)
+pacf(ts3.ddD, lag.max = 500)
+```
+
+
+
+
+# Models fitting
+
+```{r}
+m3_021111 <- arima(ts3_true, order = c(0, 2, 1), seasonal = list(order = c(1, 1, 1), period = 52))
+m3_021111
+tsdiag(m3_021111)
+AIC(m3_021111)
+BIC(m3_021111)
+```
+```{r}
+plot(ts3_true,type = "l")
+predictions021111 <- predict(m3_021111, n.ahead = 104)$pred
+predictions <- predictions021111
+plot(1:(length(ts3_true) + length(predictions)), c(ts3_true, predictions), type = 'l', col = 1)
+points((length(ts3_true) + 1) : (length(ts3_true) + length(predictions)), predictions, type = 'l', col = 2)
+```
+
+```{r}
+m3_121111 <- arima(ts3_true, order = c(1, 2, 1), seasonal = list(order = c(1, 1, 1), period = 52))
+m3_121111
+tsdiag(m3_121111)
+AIC(m3_121111)
+BIC(m3_121111)
+```
+
+
+```{r}
+m3_021114 <- arima(ts3_true, order = c(0, 2, 1), seasonal = list(order = c(1, 1, 4), period = 52))
+m3_021114
+tsdiag(m3_021114)
+AIC(m3_021114)
+BIC(m3_021114)
+```
+
+```{r}
+m3_021114 <- arima(ts3_true, order = c(0, 2, 1), seasonal = list(order = c(1, 1, 4), period = 52))
+m3_021114
+tsdiag(m3_021114)
+AIC(m3_021114)
+BIC(m3_021114)
+```
+
+```{r}
+m3_021214 <- arima(ts3_true, order = c(0, 2, 1), seasonal = list(order = c(2, 1, 4), period = 52))
+
+```
+
+
+
+
+
+
+```{r}
+plot(ts3_true,type = "l")
+predictions021114 <- predict(m3_021114, n.ahead = 104)$pred
+predictions <- predictions021114
+plot(1:(length(ts3_true) + length(predictions)), c(ts3_true, predictions), type = 'l', col = 1)
+points((length(ts3_true) + 1) : (length(ts3_true) + length(predictions)), predictions, type = 'l', col = 2)
+```
+
+
+
+
+```{r}
+predictions26 <- predict(m26, n.ahead = 104)$pred
+```
+```{r}
+m2_0224 <- arima(ts2.log, order = c(0, 1, 2), seasonal = list(order = c(2, 1, 4), period = 52))
+m2_0224
+```
+
+```{r}
+m2_1213 <- arima(ts2.log, order = c(1, 1, 2), seasonal = list(order = c(1, 1, 3), period = 52))
+m2_1213
+tsdiag(m2_1213)
+AIC(m2_1213)
+BIC(m2_1213)
+```
+
+```{r}
+m2_1214 <- arima(ts2.log, order = c(1, 1, 2), seasonal = list(order = c(1, 1, 4), period = 52))
+m2_1214
+tsdiag(m2_1214)
+AIC(m2_1214)
+BIC(m2_1214)
+```
+## Cross Validation
+We use the cross validation function defined in Q1(1)-copy.Rmd
+
+```{r}
+MSE2_26 <- computeCVmse(c(0, 1, 2), c(0,1,6))
+MSE36 <- computeCVmse(c(0, 1, 3), c(0,1,6))
+MSE46 <- computeCVmse(c(0, 1, 4), c(0,1,6))
+
+
+MSE26# 0.2112802 0.1293311 0.5460744 0.1423115 0.1436121
+MSE36# 0.2043168 0.1445004 0.5460334 0.1428842 0.1530916
+MSE46#0.2039268 0.1424566 0.5468994 0.1417810 0.1530116
+```
